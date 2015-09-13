@@ -6,105 +6,87 @@
 #include <iostream>
 #include <vector>
 #include <string>
-namespace AST {
 
+namespace AST {
 	///////////////////////////////////////////////////////////////////////////
 	//  Our AST
 	///////////////////////////////////////////////////////////////////////////
 	struct binary_op;
 	struct unary_op;
-	struct nil {};
+	struct nil {
+	};
 	struct dialog;
 
-	struct nspace
-	{
-
+	struct nspace {
 		std::string name;
 		std::vector<dialog> dialogs;
 		std::vector<nspace> nspaces;
 
-		nspace() {}
-		nspace(std::string s) : name(s) {}
+		nspace() = default;
+		nspace(std::string name) : name{std::move(name)} {}
 
-		void setName(std::string s) { name = s; }
+		void setName(std::string n) { name = std::move(n); }
 
 		void addDlg(dialog d);
 		void addNsp(nspace n);
-
-
 	};
-	
-	struct daedalus 
-	{
+
+	struct daedalus {
 		std::string daed;
 
-		daedalus(std::string const& d) : daed(d) {}
-		template <typename T>
-		daedalus(boost::iterator_range<T> const& t);
-		daedalus() {}
-
+		daedalus() = default;
+		daedalus(std::string daed) : daed{std::move(daed)} {}
+		template <typename T> daedalus(boost::iterator_range<T> const &t);
 	};
 
-
-
-
-	struct output
-	{
-		bool hero;
+	struct output {
 		std::string cont;
+		bool hero;
 
-		output(std::string const& said, bool const& her) : cont(said), hero(her) {}
-
-		output() {}
-
+		output() = default;
+		output(std::string cont, bool hero) : cont{std::move(cont)}, hero{hero} {}
 	};
-	
 
-
-	struct dialog
-	{	
-		typedef  boost::variant<output, daedalus> statement_type;
+	struct dialog {
+		typedef boost::variant<output, daedalus> statement_type;
 
 		std::string name;
 		std::vector<statement_type> content;
 
-		
+		dialog() = default;
+		dialog(std::string name, std::vector<statement_type> content)
+		    : name(std::move(name)), content(std::move(content))
+		{
+		}
 
-
-		void addStatement(statement_type const& state);
-		dialog(std::string n, std::vector<statement_type> stuff) : name(n), content(stuff) { }
-
-		dialog() {}
-
+		void addStatement(statement_type const &state);
 	};
 
-	struct print
-	{
+	struct print {
 		typedef void result_type;
 
-		void operator()(nil) const {}
-		void operator()(nspace n) const
+		void operator()(nil const &) const {}
+		void operator()(nspace const &n) const
 		{
 			std::cout << "ns(" << n.name << ", ";
 			std::for_each(n.dialogs.begin(), n.dialogs.end(), *this);
 			std::for_each(n.nspaces.begin(), n.nspaces.end(), *this);
 			std::cout << ")";
 		}
-		void operator()(dialog d) const
+		void operator()(dialog const &d) const
 		{
 			std::cout << "dlg(" << d.name << ", ";
-			std::for_each(d.content.begin(), d.content.end(), boost::apply_visitor(*this));
+			std::for_each(d.content.begin(), d.content.end(),
+			              boost::apply_visitor(*this));
 			std::cout << ")";
 		}
-		void operator()(daedalus d) const
+		void operator()(daedalus const &d) const
 		{
 			std::cout << "d(" << d.daed << ")";
 		}
-		void operator()(output o) const
+		void operator()(output const &o) const
 		{
 			std::cout << "out(" << o.cont << ")";
 		}
-			
 	};
-
 }

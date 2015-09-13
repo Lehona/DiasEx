@@ -16,7 +16,7 @@ namespace bfe {
 		bool valid = false;
 
 		File(const std::string &path);
-        
+
 		static bool write(const std::string &file, const std::vector<char> &stream);
 	};
 

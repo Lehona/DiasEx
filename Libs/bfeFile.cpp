@@ -7,7 +7,7 @@ using namespace bfe;
 
 File::File(const std::string &path) : path{path}
 {
-  auto file = std::basic_ifstream<char>{path, std::ios::in | std::ios::binary};
+	auto file = std::basic_ifstream<char>{path, std::ios::in | std::ios::binary};
 	file.unsetf(std::ios::skipws);
 
 	if(!file.is_open()) {
@@ -55,7 +55,7 @@ bool Folder::exists() const { return valid; }
 
 const Folder Folder::getFolder(const std::string &sub) const
 {
-	//if(!valid) error("trying to use methods on non-existing folder " + folder);
+	// if(!valid) error("trying to use methods on non-existing folder " + folder);
 	return Folder(folder + sub);
 }
 
@@ -132,7 +132,7 @@ Folder::getAllFileNames(const std::string &ending) const
 void Folder::foreach(const std::string &filter,
                      const std::function<void(WIN32_FIND_DATA &)> &func) const
 {
-	//if(!valid) error("trying to use methods on non-existing folder " + folder);
+	// if(!valid) error("trying to use methods on non-existing folder " + folder);
 
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = FindFirstFile(filter.c_str(), &fd);
