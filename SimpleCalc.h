@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/spirit/include/qi.hpp>
+
 #include "AST.hpp"
 
 #include <iostream>
@@ -13,10 +14,13 @@ BOOST_FUSION_ADAPT_STRUCT(AST::daedalus, daed)
 
 BOOST_FUSION_ADAPT_STRUCT(AST::dialog, name, content)
 
+BOOST_FUSION_ADAPT_STRUCT(AST::attribute, type, content)
+
 namespace DiasEx {
 	namespace qi = boost::spirit::qi;
 	namespace ascii = boost::spirit::ascii;
 	namespace phx = boost::phoenix;
+	namespace fus = boost::fusion;
 
 	template <typename Iterator>
 	struct gram : qi::grammar<Iterator, AST::nspace(), ascii::space_type> {
@@ -33,11 +37,21 @@ namespace DiasEx {
 
 		qi::rule<Iterator, AST::daedalus(), ascii::space_type> daedSingle, daedLine;
 		qi::rule<Iterator, std::string()> nestedBrackets;
+    
+		qi::rule<Iterator, AST::attribute(), ascii::space_type> attribute;
+		qi::rule<Iterator, std::vector<AST::attribute>(), ascii::space_type>
+		    specialAttr;
 
-		qi::rule<Iterator, qi::unused_type(), ascii::space_type> specialAttr,
-		    specAssign;
 		qi::rule<Iterator, std::string(), ascii::space_type> quoted_string,
 		    identifier;
+
+		struct attribute_type_ : qi::symbols<char, AST::attribute_type> {
+			attribute_type_()
+			{
+				add("npc", AST::attribute_type::npc);
+				add("cond", AST::attribute_type::condition);
+			}
+		} attribute_type;
 
 		gram() : base_type(start)
 		{
@@ -59,16 +73,17 @@ namespace DiasEx {
 			          dlg[phx::bind(&AST::nspace::addDlg, _val,
 			                        _1)]); // "Global" namespace
 
-			nmspace = "namespace" >> identifier[phx::bind(&AST::nspace::setName, _val,
-			                                              _1)] /*>> -specialAttr */
-			          >>
-			          '{' >> +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] |
-			                   dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) >>
+			nmspace = "namespace" >>
+			          identifier[phx::bind(&AST::nspace::setName, _val, _1)] >>
+			          -specialAttr >> '{' >>
+			          +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] |
+			            dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) >>
 			          '}';
+      
+			attribute = attribute_type >> '=' >> identifier;
 
-			specialAttr = '[' >> *(specAssign % ',') >> ']';
-
-			specAssign = (lit("npc") | lit("cond")) >> '=' >> identifier;
+			specialAttr = '[' >> +(attribute % ',')[_val = _1] >> ']';
+      // help::display_attribute_of_parser('[' >> +(attribute % ',') >> ']');
 
 			daedLine %= "##" >> (qi::raw[lexeme[+(char_ - qi::eol)]] >> qi::eol);
 
@@ -79,8 +94,7 @@ namespace DiasEx {
 			                 nestedBrackets)] |
 			    qi::attr("");
 
-			dlg %= "dialog" >> identifier /*>> -specialAttr */ >> '{' >> +statement >>
-			       '}';
+			dlg %= "dialog" >> identifier >> -specialAttr >> '{' >> +statement >> '}';
 
 			output %= (">>" >> qi::attr(true) >> quoted_string >> ';') |
 			          ("<<" >> qi::attr(false) >> quoted_string >> ';');
