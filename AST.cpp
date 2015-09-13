@@ -1,4 +1,5 @@
-#include "stdafx.h"
+#include <vector>
+#include <string>
 #include "boost/range.hpp"
 #include "AST.hpp"
 #include <boost/variant/apply_visitor.hpp>

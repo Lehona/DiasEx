@@ -1,6 +1,5 @@
 #pragma once
 
-#include "stdafx.h"
 #include <boost/spirit/include/qi.hpp>
 #include "AST.hpp"
 
@@ -22,6 +21,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 	AST::dialog,
 	name,
 	content)
+
+
 namespace DiasEx
 {
 	namespace qi = boost::spirit::qi;
@@ -32,27 +33,23 @@ namespace DiasEx
 	template <typename Iterator>
 	struct gram : qi::grammar<Iterator, AST::nspace(), ascii::space_type>
 	{
-		
-
-		qi::rule<Iterator, std::string(), ascii::space_type> quoted_string, identifier;
-
 		qi::rule<Iterator, AST::nspace(), ascii::space_type> start;
 
 		qi::rule<Iterator, AST::nspace(), ascii::space_type> nmspace;
 
+		qi::rule<Iterator, AST::dialog(), ascii::space_type> dlg;
 
-		qi::rule<Iterator, AST::output(), ascii::space_type> output;
 
 		typedef boost::variant<AST::output, AST::daedalus> statement_type;
 		qi::rule<Iterator, statement_type(), ascii::space_type> statement;
 
-
-		qi::rule<Iterator, AST::dialog(), ascii::space_type> dlg;
+		qi::rule<Iterator, AST::output(), ascii::space_type> output;
 
 		qi::rule<Iterator, AST::daedalus(), ascii::space_type> daedSingle, daedLine;
 		qi::rule<Iterator, std::string()> nestedBrackets;
 
 		qi::rule<Iterator, qi::unused_type(), ascii::space_type>  specialAttr, specAssign;
+		qi::rule<Iterator, std::string(), ascii::space_type> quoted_string, identifier;
 
 		gram() : base_type(start)
 		{

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/variant/recursive_variant.hpp>
@@ -69,11 +69,7 @@ void parseDXtoD(std::string const& path) {
 int main()
 {
 	std::cout << "Insert path to sourcefile: ";
-
-	using boost::spirit::ascii::space;
-
-
-	
+		
 	std::string str;
 	while (std::getline(std::cin, str))
 	{

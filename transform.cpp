@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include <string>
 #include "transform.h"
 #include "boost/variant.hpp"
 #include "boost/algorithm/string/replace.hpp"
@@ -7,21 +7,21 @@ namespace AST {
 	std::string transform::operator()(dialog const& d) {
 		m_context.add(d.name);
 
-		std::string ret = "";
+		auto ret = std::string("");
 
 #ifdef EXTENSIVEFORMATTING
 		ret += "//************************************\n";
 		ret += "//******* dialog " + d.name + "\n";
-		ret += "//************************************\n";
+		ret += "//************************************\n\n";
 #endif		
-		ret += m_context.buildC_InfoString(d.name);
-		ret += "\n\nfunc void testInfo() {\n";
+		ret += m_context.buildC_InfoString();
+		ret += "\n\nfunc void "+m_context.buildDIAidentifier()+"_info() {\n";
 
 		for (auto v : d.content) {
 			ret += "\t" + boost::apply_visitor(*this, v) + "\n";
 		}
 
-		ret += "};";
+		ret += "};\n\n";
 
 		m_context.rewind();
 
@@ -36,7 +36,7 @@ namespace AST {
 #ifdef EXTENSIVEFORMATTING
 		ret += "//************************************\n";
 		ret += "//******* namespace " + n.name + "\n";
-		ret += "//************************************\n";
+		ret += "//************************************\n\n";
 #endif
 
 		for (auto d : n.dialogs) {
@@ -50,7 +50,7 @@ namespace AST {
 #ifdef EXTENSIVEFORMATTING
 		ret += "//************************************\n";
 		ret += "//******* namespace " + n.name + "end \n";
-		ret += "//************************************\n";
+		ret += "//************************************\n\n";
 #endif
 		m_context.rewind();
 
@@ -75,7 +75,7 @@ namespace AST {
 	}
 
 	std::string context::getPrefix() {
-		return boost::replace_all_copy(name, "::", "_");
+		return "DX_"+boost::replace_all_copy(name, "::", "_");
 	}
 
 	std::string context::buildOUString(bool hero) {
@@ -90,24 +90,28 @@ namespace AST {
 		return ret;
 	}
 
-	std::string context::buildDIAidentifier(std::string const& name) 
+	std::string context::buildDIAidentifier() 
 	{
-		return getPrefix() + "_" + name;
+		return getPrefix(); // the contextname does include the dialog name, thus it's fit to be used as identifier
 	}
 
-	std::string context::buildC_InfoString(std::string const& name) //TODO: add stuff like npc, nr
+	std::string context::buildC_InfoString() //TODO: add stuff like npc, nr
 	{
-		return std::string{ "instance " + buildDIAidentifier(name) + "(C_Info) {\n"
+		auto ident = buildDIAidentifier();
+		return std::string{ "instance " + ident + "(C_Info) {\n"
 			"\tnpc = NONE_100_Xardas;\n"
 			"\tnr = 999;\n"
 			"\tdescription = DIALOG_BACK;\n"
-			"\tinfo = testInfo;\n"
+			"\tinfo = "+ident+"_info;\n"
 			"};" };
 	}
 
 	void context::add(std::string const& cont) {
 		if (cont.empty()) return;
-		name += "::" + cont;
+		if (name.empty()) 
+			name += cont;  // I want foo::bar::dialog, not ::foo::bar::dialog
+		else
+			name += "::" + cont;
 	}
 
 	void context::rewind(bool restart) {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "stdafx.h"
 #include <boost/variant.hpp>
 #include <boost/range/iterator_range.hpp>
 
@@ -107,15 +106,4 @@ namespace AST {
 			
 	};
 
-
-
-	struct evaluate
-	{
-		typedef double result_type;
-
-		double operator()(nil) const { return 0.0; }
-		double operator()(double d) const { return d;  }
-
-		
-	};
 }

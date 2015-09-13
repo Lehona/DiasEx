@@ -18,9 +18,9 @@ namespace AST {
 		void rewind(bool restartOU = false);
 
 		std::string getPrefix();
-		std::string buildDIAidentifier(std::string const& dname);
+		std::string buildDIAidentifier();
 		std::string buildOUString(bool);
-		std::string buildC_InfoString(std::string const& dname);
+		std::string buildC_InfoString();
 	};
 
 	struct transform {
