@@ -73,7 +73,7 @@ namespace DiasEx
 			nmspace = "namespace" >> identifier[phx::bind(&AST::nspace::setName, _val, _1)] /*>> -specialAttr */
 				>> '{' >>
 				+(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] 
-					| dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) >> '}');
+					| dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) >> '}';
 
 			specialAttr = '[' >> *(specAssign % ',') >> ']';
 
@@ -88,7 +88,7 @@ namespace DiasEx
 
 
 
-			dlg %= "dialog" >> identifier /*>> -specialAttr */  >> '{' >> +statement >> '}');
+			dlg %= "dialog" >> identifier /*>> -specialAttr */  >> '{' >> +statement >> '}';
 
 			output %= (">>" >> qi::attr(true) >> quoted_string >> ';')
 				| ("<<" >> qi::attr(false) >> quoted_string >> ';');
