@@ -26,8 +26,9 @@ namespace AST {
 		nspace() {}
 		nspace(std::string s) : name(s) {}
 
-		void addDlg(dialog d);
+		void setName(std::string s) { name = s; }
 
+		void addDlg(dialog d);
 		void addNsp(nspace n);
 
 

@@ -67,11 +67,10 @@ namespace DiasEx
 
 			identifier %= lexeme[+alpha];
 
-			start = qi::eps[_val = phx::construct<AST::nspace>(phx::val(""))] >>
-				+(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)]
+			start =	+(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)]
 				| dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]); // "Global" namespace
 
-			nmspace = (lit("namespace") >> identifier[_val = phx::construct<AST::nspace>(_1)] /*>> -specialAttr */
+			nmspace = "namespace" >> identifier[phx::bind(&AST::nspace::setName, _val, _1)] /*>> -specialAttr */
 				>> '{' >>
 				+(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] 
 					| dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) >> '}');
@@ -89,7 +88,7 @@ namespace DiasEx
 
 
 
-			dlg %= (lit("dialog") >> identifier /*>> -specialAttr */  >> '{' >> +statement >> '}');
+			dlg %= "dialog" >> identifier /*>> -specialAttr */  >> '{' >> +statement >> '}');
 
 			output %= (">>" >> qi::attr(true) >> quoted_string >> ';')
 				| ("<<" >> qi::attr(false) >> quoted_string >> ';');

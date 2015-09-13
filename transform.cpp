@@ -49,7 +49,7 @@ namespace AST {
 		
 #ifdef EXTENSIVEFORMATTING
 		ret += "//************************************\n";
-		ret += "//******* namespace " + n.name + "end \n";
+		ret += "//******* namespace " + n.name + " end \n";
 		ret += "//************************************\n\n";
 #endif
 		m_context.rewind();

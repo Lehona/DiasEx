@@ -51,7 +51,7 @@ void parseDXtoD(std::string const& path) {
 	auto iter = str.begin();
 	auto end = str.end();
 	AST::transform transformer;
-	AST::nspace ast;
+	AST::nspace ast{ "" };
 
 
 	bool r = phrase_parse(iter, end, gram, boost::spirit::ascii::space, ast);
