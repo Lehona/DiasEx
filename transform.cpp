@@ -6,7 +6,7 @@
 namespace AST {
 	std::string transform::operator()(dialog const &d)
 	{
-		m_context.add(d.name);
+		m_context.add(d);
 
 		auto ret = std::string{};
 
@@ -66,7 +66,7 @@ namespace AST {
 	{
 		std::string ret = "AI_Output(";
 		if(o.hero)
-			ret += "other, self,  \"";
+			ret += "other, self, \"";
 		else
 			ret += "self, other, \"";
 		ret += m_context.buildOUString(o.hero);
@@ -76,12 +76,17 @@ namespace AST {
 		return ret;
 	}
 
-	std::string context::getPrefix()
+	std::string contextStack::getPrefix()
 	{
-		return "DX_" + boost::replace_all_copy(name, "::", "_");
+		auto ret = std::string{"DX"};
+		for (context c : contexts) {
+			if (c.name.empty()) continue;
+			ret += "_"+c.name;
+		}
+		return ret;
 	}
 
-	std::string context::buildOUString(bool hero)
+	std::string contextStack::buildOUString(bool hero)
 	{
 		auto ret = getPrefix();
 
@@ -95,40 +100,85 @@ namespace AST {
 		return ret;
 	}
 
-	std::string context::buildDIAidentifier()
+	std::string contextStack::buildDIAidentifier()
 	{
 		return getPrefix(); // the contextname does include the dialog name, thus
 		                    // it's fit to be used as identifier
 	}
 
-	std::string context::buildC_InfoString() // TODO: add stuff like npc, nr
+	std::string contextStack::buildC_InfoString() // TODO: add stuff like npc, nr
 	{
 		auto ident = buildDIAidentifier();
 		return {"instance " + ident + "(C_Info) {\n"
-		                              "\tnpc = NONE_100_Xardas;\n"
+		                              "\tnpc = "+getAttribute(attribute_type::npc)+";\n"
 		                              "\tnr = 999;\n"
 		                              "\tdescription = DIALOG_BACK;\n"
+																	"\tcondition = "+getAttribute(attribute_type::condition)+";\n"
 		                              "\tinfo = " +
 		        ident + "_info;\n"
 		                "};"};
 	}
 
-	void context::add(std::string const &cont)
+	void contextStack::add(std::string const &cont)
 	{
-		if(cont.empty())
-			return;
-
-		if(!name.empty())
-			name += "::";
-		name += cont;
+		contexts.emplace_back(cont);
 	}
 
-	void context::rewind(bool restart)
-	{
-		if(restart) {
-			OUnumber = 0;
-		}
+	void contextStack::add(dialog const& d) {
+		contexts.emplace_back(d);
+	}
 
-		name = name.substr(0, name.find_last_of("::") - 3); // TODO: Test
+	void contextStack::rewind()
+	{
+		contexts.pop_back();
+	}
+
+	int contextStack::nextOUnumber() {
+		return contexts.back().OUnumber++;
+	}
+
+	std::string contextStack::getAttribute(attribute_type attr) {
+		auto ret = std::string{};
+		for (auto c : contexts)
+		{
+			if (c.hasAttribute(attr))
+				ret = c.getAttribute(attr);
+		}
+		return ret;
+	}
+
+
+	context::context(std::string name, std::vector<attribute> attr) : context{ std::move(name) }
+	{
+		for (auto a : attr) 
+		{
+			setAttribute(a.type, a.content);
+		}
+	}
+
+	bool context::hasAttribute(attribute_type type)
+	{
+		return !getAttribute(type).empty();
+	}
+
+	std::string context::getAttribute(attribute_type type) 
+	{
+		switch(type) {
+			case attribute_type::npc:
+				return npc;
+			case attribute_type::condition:
+				return cond;
+			default: /*Error*/ return "";
+		}
+	}
+
+	void context::setAttribute(attribute_type type, std::string n) {
+		switch (type) {
+			case attribute_type::npc:
+				npc = n;  break;
+			case attribute_type::condition:
+				cond = n; break;
+			default: /*Error*/ break;
+		}
 	}
 }

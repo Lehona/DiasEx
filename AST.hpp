@@ -35,15 +35,15 @@ namespace AST {
 
 	struct attribute {
 	public:
-		attribute_type type__;
+		attribute_type type;
 		std::string content;
 
 		attribute() = default;
 		attribute(attribute_type type, std::string content)
-		    : type__{type}, content{std::move(content)}
+			: type{ type }, content{ std::move(content) }
 		{
 		}
-	};
+ };
 
 	struct nspace {
 	public:

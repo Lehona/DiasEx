@@ -14,7 +14,7 @@ BOOST_FUSION_ADAPT_STRUCT(AST::daedalus, daed)
 
 BOOST_FUSION_ADAPT_STRUCT(AST::dialog, name, attributes, content)
 
-BOOST_FUSION_ADAPT_STRUCT(AST::attribute, type__, content)
+BOOST_FUSION_ADAPT_STRUCT(AST::attribute, type, content)
 
 namespace DiasEx {
 	namespace qi = boost::spirit::qi;
