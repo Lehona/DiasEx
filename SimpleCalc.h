@@ -14,7 +14,7 @@ BOOST_FUSION_ADAPT_STRUCT(AST::daedalus, daed)
 
 BOOST_FUSION_ADAPT_STRUCT(AST::dialog, name, content)
 
-BOOST_FUSION_ADAPT_STRUCT(AST::attribute, type, content)
+BOOST_FUSION_ADAPT_STRUCT(AST::attribute, type__, content)
 
 namespace DiasEx {
 	namespace qi = boost::spirit::qi;
@@ -69,37 +69,42 @@ namespace DiasEx {
 
 			identifier %= lexeme[+alpha];
 
-			start = +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] |
-			          dlg[phx::bind(&AST::nspace::addDlg, _val,
-			                        _1)]); // "Global" namespace
+			start = +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] 
+					  | dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]); 
 
-			nmspace = "namespace" >>
-			          identifier[phx::bind(&AST::nspace::setName, _val, _1)] >>
-			          -specialAttr >> '{' >>
-			          +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] |
-			            dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) >>
-			          '}';
+			nmspace = "namespace" 
+					>> identifier[phx::bind(&AST::nspace::setName, _val, _1)] 
+				    >> -(specialAttr[phx::bind(&AST::nspace::attributes, _val) = _1])
+					>> '{' 
+					>> +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] 
+						 | dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) 
+					>> '}';
       
 			attribute = attribute_type >> '=' >> identifier;
 
-			specialAttr = '[' >> +(attribute % ',')[_val = _1] >> ']';
-      // help::display_attribute_of_parser('[' >> +(attribute % ',') >> ']');
+			specialAttr = '[' >> (attribute % ',') >> ']';
 
 			daedLine %= "##" >> (qi::raw[lexeme[+(char_ - qi::eol)]] >> qi::eol);
 
 			daedSingle %= ("#(" >> (nestedBrackets) >> ')');
-			nestedBrackets %=
-			    qi::no_skip[((char_(' ', '~') - char_('(', ')')) >> nestedBrackets) |
-			                (char_('(') >> nestedBrackets >> char_(')') >>
-			                 nestedBrackets)] |
-			    qi::attr("");
+			nestedBrackets %= qi::no_skip[
 
-			dlg %= "dialog" >> identifier >> -specialAttr >> '{' >> +statement >> '}';
+					((char_(' ', '~') - char_('(', ')')) 
+					>> nestedBrackets) 
+				
+				|	  (char_('(') >> nestedBrackets 
+					>> char_(')') 
+					>> nestedBrackets)]
+			|   qi::attr("");
 
-			output %= (">>" >> qi::attr(true) >> quoted_string >> ';') |
-			          ("<<" >> qi::attr(false) >> quoted_string >> ';');
+			dlg %= "dialog" >> identifier >> qi::omit[-specialAttr] >> '{' >> +statement >> '}';
 
-			statement = output | (daedSingle) | (daedLine);
+			output %= (">>" >> qi::attr(true) >> quoted_string >> ';')
+					| ("<<" >> qi::attr(false) >> quoted_string >> ';');
+
+			statement = output 
+				| (daedSingle) 
+				| (daedLine);
 		}
 	};
 }

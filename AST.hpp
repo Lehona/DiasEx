@@ -32,19 +32,19 @@ namespace AST {
 
   struct attribute {
   public:
-    attribute_type type;
+	attribute_type type__;
     std::string content;
 
     attribute() = default;
     attribute(attribute_type type, std::string content)
-      : type{type}, content{std::move(content)} {}
+      : type__{type}, content{std::move(content)} {}
   };
 
 	struct nspace {
 		std::string name;
 		std::vector<dialog> dialogs;
 		std::vector<nspace> nspaces;
-    std::vector<attribute> attributes;
+	  std::vector<attribute> attributes;
 
 		nspace() = default;
 		nspace(std::string name) : name{std::move(name)} {}
