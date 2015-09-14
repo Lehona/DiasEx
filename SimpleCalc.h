@@ -12,7 +12,7 @@ BOOST_FUSION_ADAPT_STRUCT(AST::output, hero, cont)
 
 BOOST_FUSION_ADAPT_STRUCT(AST::daedalus, daed)
 
-BOOST_FUSION_ADAPT_STRUCT(AST::dialog, name, content)
+BOOST_FUSION_ADAPT_STRUCT(AST::dialog, name, attributes, content)
 
 BOOST_FUSION_ADAPT_STRUCT(AST::attribute, type__, content)
 
@@ -62,22 +62,26 @@ namespace DiasEx {
 			using qi::double_;
 			using qi::lexeme;
 			using qi::alpha;
+      using qi::alnum;
 			using qi::lit;
 			using qi::_a;
 
+      using phx::push_back;
+      using phx::bind;
+
 			quoted_string %= lexeme['"' >> +(char_ - '"') >> '"'];
 
-			identifier %= lexeme[+alpha];
+			identifier %= lexeme[alpha >> *(alnum | char_('_'))];
 
-			start = +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] 
-					  | dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]); 
+			start = +(nmspace[push_back(bind(&AST::nspace::nspaces, _val), _1)] 
+						 | dlg[push_back(bind(&AST::nspace::dialogs, _val), _1)]); 
 
 			nmspace = "namespace" 
-					>> identifier[phx::bind(&AST::nspace::setName, _val, _1)] 
-				    >> -(specialAttr[phx::bind(&AST::nspace::attributes, _val) = _1])
+					>> identifier[bind(&AST::nspace::name, _val) = _1] 
+				    >> -(specialAttr[bind(&AST::nspace::attributes, _val) = _1])
 					>> '{' 
-					>> +(nmspace[phx::bind(&AST::nspace::addNsp, _val, _1)] 
-						 | dlg[phx::bind(&AST::nspace::addDlg, _val, _1)]) 
+					>> +(nmspace[push_back(bind(&AST::nspace::nspaces, _val), _1)] 
+						 | dlg[push_back(bind(&AST::nspace::dialogs, _val), _1)]) 
 					>> '}';
       
 			attribute = attribute_type >> '=' >> identifier;
@@ -97,7 +101,7 @@ namespace DiasEx {
 					>> nestedBrackets)]
 			|   qi::attr("");
 
-			dlg %= "dialog" >> identifier >> qi::omit[-specialAttr] >> '{' >> +statement >> '}';
+			dlg %= "dialog" >> identifier >> -specialAttr >> '{' >> +statement >> '}';
 
 			output %= (">>" >> qi::attr(true) >> quoted_string >> ';')
 					| ("<<" >> qi::attr(false) >> quoted_string >> ';');
