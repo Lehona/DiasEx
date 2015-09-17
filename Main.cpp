@@ -1,4 +1,3 @@
-
 #include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/variant/recursive_variant.hpp>
@@ -6,8 +5,8 @@
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/phoenix_function.hpp>
 #include "boost/phoenix/phoenix.hpp"
-#include "SimpleCalc.h"
 #include "transform.h"
+#include "SimpleCalc.h"
 #include "bfeFile.h"
 
 namespace help {
@@ -45,15 +44,13 @@ void parseDXtoD(std::string const &path)
 	auto str = std::string{file.begin(), file.end()};
 	auto iter = str.begin();
 	auto end = str.end();
-
-	auto transformer = AST::transform{};
-	auto ast = AST::nspace{};
+	auto ast = AST::nspace{""};
 
 	bool r = phrase_parse(iter, end, gram, boost::spirit::ascii::space, ast);
 
 	if(r && iter == end) {
 		std::cout << "parsing succeeded. See output file.\n";
-		auto output = transformer(ast);
+		auto output = ast.transform();
 		bfe::File::write("output.txt", {output.begin(), output.end()});
 	}
 	else {

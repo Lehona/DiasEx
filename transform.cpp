@@ -1,184 +1,99 @@
 #include <string>
-#include "transform.h"
+#include "AST.hpp"
 #include "boost/variant.hpp"
 #include "boost/algorithm/string/replace.hpp"
 
-namespace AST {
-	std::string transform::operator()(dialog const &d)
-	{
-		m_context.add(d);
+using namespace AST;
+struct DlgContentTrans {
+	typedef std::string result_type;
 
-		auto ret = std::string{};
+	int OUNumber = 0;
+	std::string fullName;
 
-#ifdef EXTENSIVEFORMATTING
-		ret += "//************************************\n";
-		ret += "//******* dialog " + d.name + "\n";
-		ret += "//************************************\n\n";
-#endif
+	DlgContentTrans(std::string name) : fullName{std::move(name)} {};
 
-		ret += m_context.buildC_InfoString();
-		ret += "\n\nfunc void " + m_context.buildDIAidentifier() + "_info() {\n";
-
-		for(auto &v : d.content) {
-			ret += "\t" + boost::apply_visitor(*this, v) + "\n";
-		}
-
-		ret += "};\n\n";
-
-		m_context.rewind();
-
-		return ret;
+	std::string operator()(daedalus d) {
+		return d.daed;
 	}
 
-	std::string transform::operator()(nspace const &n)
-	{
-		m_context.add(n.name);
-
-		auto ret = std::string{};
-
-#ifdef EXTENSIVEFORMATTING
-		ret += "//************************************\n";
-		ret += "//******* namespace " + n.name + "\n";
-		ret += "//************************************\n\n";
-#endif
-
-		for(auto &d : n.dialogs) {
-			ret += operator()(d);
-		}
-
-		for(auto &d : n.nspaces) {
-			ret += operator()(d);
-		}
-
-#ifdef EXTENSIVEFORMATTING
-		ret += "//************************************\n";
-		ret += "//******* namespace " + n.name + " end \n";
-		ret += "//************************************\n\n";
-#endif
-		m_context.rewind();
-
-		return ret;
-	}
-
-	std::string transform::operator()(daedalus const &d) { return d.daed; }
-
-	std::string transform::operator()(output const &o)
-	{
+	std::string operator()(output o) {
 		std::string ret = "AI_Output(";
-		if(o.hero)
+		if (o.hero)
 			ret += "other, self, \"";
 		else
 			ret += "self, other, \"";
-		ret += m_context.buildOUString(o.hero);
+		ret += buildOUString(o.hero);
 		ret += "\"); //";
 		ret += o.cont;
-
 		return ret;
 	}
 
-	std::string contextStack::getPrefix()
-	{
-		auto ret = std::string{"DX"};
-		for (context c : contexts) {
-			if (c.name.empty()) continue;
-			ret += "_"+c.name;
-		}
-		return ret;
-	}
+	std::string buildOUString(bool hero) {
+		auto ret = fullName;
 
-	std::string contextStack::buildOUString(bool hero)
-	{
-		auto ret = getPrefix();
-
-		if(hero)
+		if (hero)
 			ret += "_H_";
 		else
 			ret += "_O_";
 
-		ret += std::to_string(nextOUnumber());
+		ret += std::to_string(OUNumber++);
 
 		return ret;
 	}
+};
 
-	std::string contextStack::buildDIAidentifier()
-	{
-		return getPrefix(); // the contextname does include the dialog name, thus
-		                    // it's fit to be used as identifier
+std::string dialog::transform()
+{
+	auto ret = std::string{};
+
+#ifdef EXTENSIVEFORMATTING
+	ret += "//************************************\n";
+	ret += "//******* dialog " + name + "\n";
+	ret += "//************************************\n\n";
+#endif
+
+	std::string ident = getFullName();
+	ret += "instance " + ident + "(C_Info) {\n"
+		"\tnpc = " + getAttribute(attribute_type::npc) + ";\n"
+		"\tnr = 999;\n"
+		"\tdescription = DIALOG_BACK;\n"
+		"\tcondition = " + getAttribute(attribute_type::condition) + ";\n"
+		"\tinfo = " +	ident + "_info;\n"
+		"};";
+	ret += "\n\nfunc void " + ident + "_info() {\n";
+
+	DlgContentTrans t(ident);
+	for(auto &v : content) {
+		ret += "\t" + boost::apply_visitor(t, v) + "\n";
 	}
 
-	std::string contextStack::buildC_InfoString() // TODO: add stuff like npc, nr
-	{
-		auto ident = buildDIAidentifier();
-		return {"instance " + ident + "(C_Info) {\n"
-		                              "\tnpc = "+getAttribute(attribute_type::npc)+";\n"
-		                              "\tnr = 999;\n"
-		                              "\tdescription = DIALOG_BACK;\n"
-																	"\tcondition = "+getAttribute(attribute_type::condition)+";\n"
-		                              "\tinfo = " +
-		        ident + "_info;\n"
-		                "};"};
-	}
+	ret += "};\n\n";
 
-	void contextStack::add(std::string const &cont)
-	{
-		contexts.emplace_back(cont);
-	}
+	return ret;
+} 
 
-	void contextStack::add(dialog const& d) {
-		contexts.emplace_back(d);
-	}
+std::string nspace::transform()
+{	
+	auto ret = std::string{""};
 
-	void contextStack::rewind()
-	{
-		contexts.pop_back();
-	}
-
-	int contextStack::nextOUnumber() {
-		return contexts.back().OUnumber++;
-	}
-
-	std::string contextStack::getAttribute(attribute_type attr) {
-		auto ret = std::string{};
-		for (auto c : contexts)
-		{
-			if (c.hasAttribute(attr))
-				ret = c.getAttribute(attr);
-		}
-		return ret;
+#ifdef EXTENSIVEFORMATTING
+	ret += "//************************************\n";
+	ret += "//******* namespace " + name + "\n";
+	ret += "//************************************\n\n";
+#endif
+	for (auto s : children) {
+		s->setParent(this);
+		ret += s->transform();
 	}
 
 
-	context::context(std::string name, std::vector<attribute> attr) : context{ std::move(name) }
-	{
-		for (auto a : attr) 
-		{
-			setAttribute(a.type, a.content);
-		}
-	}
+#ifdef EXTENSIVEFORMATTING
+	ret += "//************************************\n";
+	ret += "//******* namespace " + name+ " end \n";
+	ret += "//************************************\n\n";
+#endif
 
-	bool context::hasAttribute(attribute_type type)
-	{
-		return !getAttribute(type).empty();
-	}
-
-	std::string context::getAttribute(attribute_type type) 
-	{
-		switch(type) {
-			case attribute_type::npc:
-				return npc;
-			case attribute_type::condition:
-				return cond;
-			default: /*Error*/ return "";
-		}
-	}
-
-	void context::setAttribute(attribute_type type, std::string n) {
-		switch (type) {
-			case attribute_type::npc:
-				npc = n;  break;
-			case attribute_type::condition:
-				cond = n; break;
-			default: /*Error*/ break;
-		}
-	}
+	return ret;
 }
+
+
